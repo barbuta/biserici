@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pelerinaj · Biserici</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --bg: #fdf7ee; --ink: #2b1d17; --muted: #6b5a51; --brand: #7a2c1e; --gold: #805a00; --card: #ffffff; --line: #e8dccf; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1c1512; --ink: #f4ece6; --muted: #bfaea4; --brand: #e3a72f; --gold: #e3a72f; --card: #2a201b; --line: #3b2f29; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
+  .card { background: var(--card); border-radius: 20px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .kicker { color: var(--brand); font-weight: 600; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 6px 0 16px; }
+  h2 { font-size: 18px; margin: 24px 0 4px; color: var(--muted); }
+  a.button, button.button { display: block; width: 100%; box-sizing: border-box; text-align: center; padding: 14px; border-radius: 14px; text-decoration: none; font: inherit; font-weight: 600; margin-top: 12px; cursor: pointer; }
+  .primary { background: var(--brand); color: #fff; border: 0; }
+  .secondary { background: none; border: 1px solid var(--muted); color: var(--ink); }
+  ol { list-style: none; padding: 0; margin: 8px 0 0; }
+  li { display: grid; grid-template-columns: 2.2em 1fr; gap: 0 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .n { font-weight: 700; color: var(--brand); font-size: 20px; }
+  .name { font-weight: 600; }
+  .addr, .note { color: var(--muted); font-size: 15px; }
+  .hram { color: var(--gold); font-size: 15px; }
+  li a { color: var(--muted); font-size: 14px; }
+  .empty { color: var(--muted); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+  footer a { color: inherit; }
+  @media print {
+    :root { --bg: #fff; --ink: #000; --muted: #333; --brand: #000; --gold: #000; --card: #fff; --line: #bbb; }
+    .noprint { display: none !important; }
+    .card { box-shadow: none; padding: 0; }
+    main { max-width: none; padding: 0; }
+    li { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <div class="kicker">Biserici · pelerinaj</div>
+    <h1 id="title">Un pelerinaj din aplicația Biserici</h1>
+    <div class="noprint">
+      <a id="open" class="button primary" href="https://play.google.com/store/apps/details?id=ro.infoortodox.app&amp;referrer=utm_source%3Droute_link">Deschide traseul în aplicație</a>
+      <button id="print" class="button secondary" type="button">Tipărește lista</button>
+    </div>
+    <div id="list"><p class="empty">Linkul nu conține niciun traseu.</p></div>
+    <p class="note noprint">Bisericile și mănăstirile ortodoxe din jurul tău, calendarul și pelerinajele. Fără cont, fără date trimise de pe telefon.</p>
+  </div>
+  <footer>Hărți și date despre lăcașuri: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL), Wikidata (CC0). Programul și drumul exact le confirmi la fața locului.</footer>
+</main>
+<script>
+  // The route a share carries, after "#d=": base64url of {"t": title, "s": [{"i": id, "n": name,
+  // "a": address, "h": hram, "la": lat, "lo": lon, "d": day}]}. The "#" part never reaches a server.
+  // Everything is shown with textContent, never as HTML.
+  (function () {
+    document.getElementById("print").addEventListener("click", function () { window.print(); });
+    var m = /[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);
+    if (!m) return;
+    var route;
+    try {
+      var b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+      var bin = atob(b64 + "===".slice((b64.length + 3) % 4));
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      route = JSON.parse(new TextDecoder("utf-8").decode(bytes));
+    } catch (e) { return; }
+    var stops = Array.isArray(route.s) ? route.s.slice(0, 60) : [];
+    if (!stops.length) return;
+    if (typeof route.t === "string" && route.t) { document.getElementById("title").textContent = route.t; document.title = route.t + " · Biserici"; }
+
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    var list = document.getElementById("list");
+    list.textContent = "";
+    var day = null, ol = null;
+    stops.forEach(function (s, k) {
+      if (!ol || (s.d && s.d !== day)) {
+        day = s.d || null;
+        if (day) list.appendChild(el("h2", null, "Ziua " + day));
+        ol = el("ol"); list.appendChild(ol);
+      }
+      var li = el("li");
+      li.appendChild(el("span", "n", String(k + 1)));
+      var body = el("div");
+      body.appendChild(el("div", "name", String(s.n || "")));
+      if (s.a) body.appendChild(el("div", "addr", String(s.a)));
+      if (s.h) body.appendChild(el("div", "hram", "Hram: " + String(s.h)));
+      var lat = Number(s.la), lon = Number(s.lo);
+      if (isFinite(lat) && isFinite(lon)) {
+        var a = el("a", "noprint", "Vezi pe hartă");
+        a.href = "https://www.openstreetmap.org/?mlat=" + lat + "&mlon=" + lon + "#map=17/" + lat + "/" + lon;
+        body.appendChild(a);
+      }
+      li.appendChild(body);
+      ol.appendChild(li);
+    });
+
+    // On Android, "Deschide traseul în aplicație" opens it in Biserici, or Google Play without it.
+    var ids = stops.map(function (s) { return String(s.i || ""); }).filter(function (id) { return /^[A-Za-z0-9:_.-]{1,100}$/.test(id); });
+    if (ids.length && /Android/i.test(navigator.userAgent)) {
+      var play = "https://play.google.com/store/apps/details?id=ro.infoortodox.app&referrer=utm_source%3Droute_link";
+      document.getElementById("open").href = "intent://traseu/" + encodeURIComponent(ids.join(",")).replace(/%2C/g, ",") +
+        "#Intent;scheme=biserici;package=ro.infoortodox.app;S.browser_fallback_url=" + encodeURIComponent(play) + ";end";
+    }
+  })();
+</script>
+</body>
+</html>
