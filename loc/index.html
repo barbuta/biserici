@@ -26,6 +26,7 @@
     <h1 id="name">O biserică din aplicația Biserici</h1>
     <a id="open" class="button primary" href="https://play.google.com/store/apps/details?id=ro.infoortodox.app&amp;referrer=utm_source%3Dshare_link">Deschide în aplicație</a>
     <a id="map" class="button secondary" href="https://www.openstreetmap.org/" hidden>Vezi pe hartă</a>
+    <a id="page" class="button secondary" href="../" hidden>Despre acest loc</a>
     <a class="button secondary" href="https://play.google.com/store/apps/details?id=ro.infoortodox.app&amp;referrer=utm_source%3Dshare_link">Instalează Biserici din Google Play</a>
     <p class="note">Bisericile și mănăstirile ortodoxe din jurul tău, calendarul și pelerinajele. Fără cont, fără date trimise de pe telefon.</p>
   </div>
@@ -43,6 +44,12 @@
       var map = document.getElementById("map");
       map.href = "https://www.openstreetmap.org/?mlat=" + lat + "&mlon=" + lon + "#map=17/" + lat + "/" + lon;
       map.hidden = false;
+    }
+    // Every church has its own page, built from open data (b/<id>/).
+    if (/^[A-Za-z0-9:_.-]{1,100}$/.test(id)) {
+      var page = document.getElementById("page");
+      page.href = "../b/" + id.replace(/[^A-Za-z0-9_-]/g, "-") + "/";
+      page.hidden = false;
     }
     if (/^[A-Za-z0-9:_.-]{1,100}$/.test(id) && /Android/i.test(navigator.userAgent)) {
       var play = "https://play.google.com/store/apps/details?id=ro.infoortodox.app&referrer=utm_source%3Dshare_link";
